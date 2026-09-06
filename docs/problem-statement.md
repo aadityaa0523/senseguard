@@ -55,25 +55,23 @@ SenseGuard addresses this by making the phone a **multimodal physical-world inte
 
 # 3. Core Insight
 
-## The box does not need to be understood.
+## The whole box, understood at once — with a graceful fallback.
 
-The entire medicine box can be messy, mixed, and unorganized.
-
-SenseGuard only needs to understand:
-
-> **the medicine in the user's hand right now.**
-
-This removes the hardest computer-vision problem — multi-item cluttered-box recognition — and replaces it with a controlled, single-object interaction.
+SenseGuard identifies every recognizable medicine pack in a cluttered box in a single scan, not one item at a time.
 
 ### Core interaction
 
-**Pick up any strip/bottle → show it to the phone → phone stabilizes the capture → identifies it → checks it → decides whether it is due → speaks/shows the action → logs the event.**
+**Point the phone at the open box → on-device multi-object detection finds every distinct pack/strip/bottle, even overlapping or partially occluded ones → each detected region is cropped and run through OCR/barcode recognition in parallel → each item is cross-checked against the patient's schedule → the phone overlays a live AR box on every item, color-coded by status (green = due now, amber = scheduled but not due, red = expired/mismatched, grey = unrecognized) → the patient acts directly on what they see, no sorting or picking required.**
 
 No sorting.
 
 No pill organizer grid.
 
-No need to inventory the entire box.
+No need to isolate one item before the phone can respond.
+
+### Graceful degradation (the honest engineering detail)
+
+Multi-item detection in clutter is inherently harder than single-object recognition — occlusion, glare, and small/blurred text can drop confidence on any individual crop. Rather than guessing on a low-confidence item, SenseGuard reports it as **grey / "needs a closer look"** and prompts the user to bring just that one pack closer for a focused single-item capture (the original controlled-capture flow, now used as a fallback path rather than the primary interaction). This means the system never silently fabricates a match — it either identifies an item with real confidence, or asks for a better look, item by item.
 
 ---
 
