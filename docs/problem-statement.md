@@ -535,6 +535,12 @@ For hearing-impaired users, captions can be visually anchored to the active spea
 
 The local/open-source model should be at the **core of the reasoning**, with the iQOO phone kept in the loop as required by the hackathon's phone-first approach.
 
+## Model choice
+
+- **Primary: Gemma 3n E2B**, served via Google's **LiteRT-LM** runtime (the same Android on-device stack as MediaPipe LLM Inference API). Purpose-built for phone NPUs — Google reports up to 10-12x speedup over CPU/GPU on this model, ~2.6 GB footprint. Chosen because the rest of the stack (CameraX, Jetpack Compose, Android SensorManager) is already Google's own Android ecosystem, so the on-device LLM runtime is a natural fit rather than a bolt-on.
+- **Fallback: Qwen3 0.6B** — smaller footprint, GQA-based memory efficiency, if the loaner device's NPU/RAM can't comfortably host Gemma 3n. Validate both against the actual loaner hardware in the section 46 checklist before committing.
+- Either model is used only to **explain and phrase** the decision (§29's deterministic rules), never to decide it — a hard safety rule stays the same regardless of which model is picked.
+
 ## AI jobs
 
 ### 1. OCR normalization
@@ -953,7 +959,7 @@ This is preferable to letting an LLM directly decide medical actions from uncons
 
 ## AI
 
-- Local/open-source LLM or compact multimodal model suitable for the device
+- **Gemma 3n E2B** via **LiteRT-LM** (primary) — on-device, NPU-accelerated; **Qwen3 0.6B** as a lighter fallback (see §17 for the tradeoff)
 - NPU/accelerated inference where the iQOO stack exposes it
 - Retrieval from a local medication knowledge/reference database
 
@@ -1435,11 +1441,11 @@ Say:
 
 > “It gives us signal-quality evidence so we do not blindly trust a GNSS coordinate. We combine it with motion and consistency checks to estimate location confidence.”
 
-## Q8. Why on-device AI?
+## Q8. Why on-device AI? Which model?
 
 **Answer:**
 
-> “Medication information is sensitive, and the hackathon explicitly rewards local/open-source models with the phone in the loop. Local inference also makes the product resilient when connectivity is unavailable.”
+> “Medication information is sensitive, and the hackathon explicitly rewards local/open-source models with the phone in the loop. Local inference also makes the product resilient when connectivity is unavailable. We run Gemma 3n E2B through Google's LiteRT-LM runtime — it's built specifically for phone NPUs, roughly a 2.6 gigabyte footprint, and it only phrases the explanation; the safety decision itself is deterministic rules, not the model's judgment. Qwen3 0.6B is our fallback if the loaner device's memory or NPU can't comfortably carry Gemma 3n.”
 
 ## Q9. What is the hardest technical part?
 
