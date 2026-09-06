@@ -1,0 +1,5 @@
+demo-video/
+node_modules/
+frames/
+*.log
+~$*

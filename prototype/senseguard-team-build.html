@@ -1,0 +1,687 @@
+<title>SenseGuard Rehearsal</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Titillium+Web:wght@400;600;700&family=Share+Tech+Mono&display=swap">
+<style>
+  /* Single committed visual world: dark HUD, palette pulled directly from the pitch deck. */
+  :root{
+    --bg:#121110; --surface:#1a1917; --surface-2:#221f1b; --line:#3a352c;
+    --ink:#f5f2ea; --ink-dim:#a39a8c;
+    --accent:#ffbd59; --accent-dim:#e0a23a; --accent-ink:#1a1408;
+    --cyan:#67e8f9; --cyan-soft:#0f2e33;
+    --success:#7ed957; --success-soft:#16321a;
+    --warning:#f9a82b; --warning-soft:#3a2a0c;
+    --danger:#ff5c46; --danger-soft:#3a1610;
+    --shadow:0 24px 60px -20px rgba(0,0,0,.75);
+    --glow:0 0 24px -4px rgba(255,189,89,.5);
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--bg); color:var(--ink); font-family:'Titillium Web',system-ui,sans-serif; display:flex; justify-content:center; padding:20px 12px 40px;}
+  .mono{font-family:'Share Tech Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums;}
+  h1,h2,h3{font-family:'Rajdhani',system-ui,sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:.3px; text-wrap:balance; margin:0;}
+
+  .app{position:relative; width:100%; max-width:428px; background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column; min-height:min(860px,92dvh);
+    clip-path:polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+    background-image:repeating-linear-gradient(115deg, rgba(255,189,89,.035) 0 2px, transparent 2px 40px);
+  }
+
+  .hud{position:relative; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:14px 16px; background:var(--surface-2); border-bottom:1px solid var(--line); overflow:hidden;}
+  .hud::after{content:''; position:absolute; right:-8%; top:-50%; width:56px; height:220%; background:var(--accent); opacity:.09; transform:rotate(18deg); pointer-events:none;}
+  .brand{display:flex; align-items:center; gap:8px; font-family:'Rajdhani'; font-weight:700; font-size:17px; letter-spacing:.5px; text-transform:uppercase;}
+  .brand-mark{font-size:17px;}
+  .hud-chips{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;}
+  .chip{font-family:'Share Tech Mono'; font-size:10.5px; padding:4px 8px 4px 7px; background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--line); color:var(--ink-dim); letter-spacing:.4px; white-space:nowrap;}
+  .chip.on-stable{color:var(--success); border-left-color:var(--success); background:var(--success-soft);}
+  .chip.on-moving{color:var(--warning); border-left-color:var(--warning); background:var(--warning-soft);}
+  .chip.on-hi{color:var(--cyan); border-left-color:var(--cyan); background:var(--cyan-soft);}
+  .chip.on-med{color:var(--warning); border-left-color:var(--warning); background:var(--warning-soft);}
+  .chip.on-lo, .chip.on-off{color:var(--danger); border-left-color:var(--danger); background:var(--danger-soft);}
+
+  main.screen{flex:1; padding:20px 18px 12px; display:flex; flex-direction:column; gap:16px; overflow-y:auto;}
+  [hidden]{display:none!important;}
+
+  .dots{display:flex; gap:6px; justify-content:center;}
+  .dot{width:18px; height:5px; background:var(--line); clip-path:polygon(15% 0,100% 0,85% 100%,0 100%);}
+  .dot.done{background:var(--cyan);}
+  .dot.active{background:var(--accent); box-shadow:var(--glow);}
+
+  .eyebrow{font-family:'Rajdhani'; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--accent);}
+  p.lead{color:var(--ink-dim); font-size:14.5px; line-height:1.5; margin:0;}
+
+  .btn{font-family:'Rajdhani'; font-weight:700; font-size:15px; letter-spacing:1px; text-transform:uppercase; padding:14px 18px; border:1px solid transparent; cursor:pointer; text-align:center;
+    clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+  }
+  .btn-primary{background:var(--accent); color:var(--accent-ink); box-shadow:var(--glow);}
+  .btn-primary:active{background:var(--accent-dim);}
+  .btn-primary:focus-visible, .btn:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
+  .btn-ghost{background:transparent; color:var(--ink); border-color:var(--line);}
+  .btn-block{width:100%;}
+  .btn-row{display:flex; gap:10px;}
+
+  .viewfinder{position:relative; overflow:hidden; background:#000; aspect-ratio:4/5; border:1px solid var(--line);
+    clip-path:polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  }
+  .viewfinder video, .viewfinder img{width:100%; height:100%; object-fit:cover; display:block;}
+  .bracket{position:absolute; width:26px; height:26px; border:3px solid var(--accent); opacity:.9; box-shadow:0 0 10px -2px rgba(255,189,89,.6);}
+  .bracket.tl{top:14px; left:14px; border-right:none; border-bottom:none;}
+  .bracket.tr{top:14px; right:14px; border-left:none; border-bottom:none;}
+  .bracket.bl{bottom:14px; left:14px; border-right:none; border-top:none;}
+  .bracket.br{bottom:14px; right:14px; border-left:none; border-top:none;}
+  .vf-caption{position:absolute; left:0; right:0; bottom:0; padding:10px 12px; background:linear-gradient(transparent,rgba(0,0,0,.75)); color:#fff; font-family:'Share Tech Mono'; font-size:13px; letter-spacing:.5px;}
+
+  .meter{height:6px; background:var(--surface-2); overflow:hidden; clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);}
+  .meter > i{display:block; height:100%; background:var(--accent); width:4%; transition:width .15s linear; box-shadow:0 0 8px rgba(255,189,89,.7);}
+
+  .card{background:var(--surface-2); border:1px solid var(--line); padding:14px;
+    clip-path:polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+  }
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .candidate{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--accent); padding:12px; text-align:left; cursor:pointer; font-family:'Titillium Web';}
+  .candidate strong{display:block; font-size:14px; font-family:'Rajdhani'; font-weight:700; text-transform:uppercase; letter-spacing:.3px;}
+  .candidate span{font-size:12px; color:var(--ink-dim); font-family:'Share Tech Mono';}
+  .candidate:hover{border-color:var(--accent); box-shadow:var(--glow);}
+
+  table.evidence{width:100%; border-collapse:collapse; font-size:13.5px;}
+  table.evidence td{padding:9px 0; border-bottom:1px solid var(--line);}
+  table.evidence tr:last-child td{border-bottom:none;}
+  table.evidence td:first-child{color:var(--ink-dim);}
+  table.evidence td:last-child{text-align:right; font-family:'Share Tech Mono'; font-weight:700; letter-spacing:.5px; padding-right:10px;}
+  .state-pass{color:var(--success); border-left:3px solid var(--success);} .state-warning{color:var(--warning); border-left:3px solid var(--warning);} .state-fail{color:var(--danger); border-left:3px solid var(--danger);} .state-unknown{color:var(--ink-dim); border-left:3px solid var(--line);}
+
+  .banner{padding:22px 20px; text-align:center; display:flex; flex-direction:column; gap:6px; border:1px solid var(--line);
+    clip-path:polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+  }
+  .banner h2{font-size:24px; letter-spacing:1px;}
+  .banner p{margin:0; font-size:13.5px; opacity:.9;}
+  .banner.ok{background:var(--success-soft); color:var(--success); border-color:var(--success);}
+  .banner.warn{background:var(--warning-soft); color:var(--warning); border-color:var(--warning);}
+  .banner.danger{background:var(--danger-soft); color:var(--danger); border-color:var(--danger);}
+
+  details.demo-controls{border:1px dashed var(--line); padding:10px 12px; margin-top:auto;}
+  details.demo-controls summary{cursor:pointer; font-family:'Rajdhani'; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--ink-dim);}
+  details.demo-controls select{width:100%; margin-top:8px; padding:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font-family:'Titillium Web'; font-size:13px;}
+
+  .disclaimer{font-size:11.5px; color:var(--ink-dim); background:var(--surface-2); border-left:3px solid var(--accent); padding:8px 10px; line-height:1.45;}
+
+  .context-switch{display:flex; gap:2px; background:var(--surface-2); border:1px solid var(--line); padding:3px;}
+  .ctx{flex:1; padding:8px; border:none; background:transparent; color:var(--ink-dim); font-family:'Rajdhani'; font-weight:700; letter-spacing:.5px; text-transform:uppercase; font-size:12px; cursor:pointer;}
+  .ctx.active{background:var(--accent); color:var(--accent-ink);}
+
+  .cap-row{display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:12px;}
+  .pill{font-family:'Share Tech Mono'; font-size:10px; font-weight:700; padding:2px 7px; letter-spacing:.5px; vertical-align:middle; white-space:nowrap;}
+  .pill-yes{color:var(--success); background:var(--success-soft); border-left:2px solid var(--success);}
+  .pill-no{color:var(--ink-dim); background:var(--surface); border-left:2px solid var(--line);}
+
+  .tabbar{display:flex; border-top:1px solid var(--line);}
+  .tab{flex:1; padding:13px; background:var(--surface); border:none; border-top:2px solid transparent; margin-top:-1px; color:var(--ink-dim); font-family:'Rajdhani'; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:13px; cursor:pointer;}
+  .tab.active{color:var(--accent); border-top-color:var(--accent); background:var(--surface-2);}
+
+  .log-summary{font-size:13px; color:var(--ink-dim);}
+  .log-item{display:flex; justify-content:space-between; gap:10px; padding:11px 0; border-bottom:1px solid var(--line);}
+  .log-item:last-child{border-bottom:none;}
+  .log-item .med{font-weight:700; font-size:14px; font-family:'Rajdhani'; text-transform:uppercase; letter-spacing:.3px;}
+  .log-item .time{font-size:11.5px; color:var(--ink-dim); font-family:'Share Tech Mono';}
+  .log-item .status{font-size:11px; font-weight:700; padding:3px 8px; letter-spacing:.5px; align-self:start; font-family:'Share Tech Mono';}
+  .tag-example{font-size:9.5px; color:var(--ink-dim); font-style:italic; text-transform:none;}
+
+  a{color:var(--cyan);}
+</style>
+
+<div class="app" id="app">
+  <header class="hud">
+    <div class="brand"><span class="brand-mark">💊</span>SenseGuard <span class="pill pill-no" style="margin-left:4px;">TEAM BUILD</span></div>
+    <div class="hud-chips">
+      <span class="chip mono" id="chipMotion">MOTION —</span>
+      <span class="chip mono" id="chipHeading">HEADING —</span>
+      <span class="chip mono" id="chipGnss">GNSS —</span>
+      <span class="chip mono" id="chipClock">--:--</span>
+    </div>
+  </header>
+
+  <main class="screen" id="screenScan">
+    <div class="context-switch" id="contextSwitch">
+      <button class="ctx" data-ctx="pharmacy">Pharmacy</button>
+      <button class="ctx active" data-ctx="home">Home</button>
+      <button class="ctx" data-ctx="clinic">Clinic</button>
+    </div>
+    <div class="dots" id="dots">
+      <span class="dot" data-step="sensing"></span>
+      <span class="dot" data-step="identify"></span>
+      <span class="dot" data-step="verify"></span>
+      <span class="dot" data-step="guide"></span>
+    </div>
+
+    <!-- IDLE -->
+    <section id="stepIdle">
+      <div class="eyebrow" id="idleEyebrow">Home mode</div>
+      <h1 style="font-size:26px;margin:6px 0 10px;">Show me your<br>medicine.</h1>
+      <p class="lead" id="idleSub" style="margin-bottom:4px;">Adherence check — confirming your scheduled dose.</p>
+      <p class="lead">Pick up any strip or bottle and point the rear camera at it. SenseGuard checks identity, expiry and schedule on-device, then tells you what to do.</p>
+      <button class="btn btn-primary btn-block" id="btnStart" style="margin-top:8px;">Begin scan</button>
+      <p class="lead" id="permNote" style="font-size:12px;"></p>
+
+      <div class="disclaimer">
+        <strong>Team rehearsal build:</strong> identical to the judge-facing prototype, plus one difference — the community safety signal in the Log tab is a real shared counter across everyone's phone here, not a local-only count. That requires this link to be org-internal (signed-in teammates only), so the judge demo stays on the public link without this feature.<br><br>
+        <strong>What's real:</strong> camera capture, motion-based stability gate, device orientation/heading, live GPS-accuracy location confidence, barcode detection, voice + haptic output, the verification/decision logic, and now the shared community counter.<br><br>
+        <strong>Simulated:</strong> the OCR/vision "identify" step — you confirm the medicine from a short list instead of true text recognition. <em>Planned next:</em> clinician voice capture → structured instruction card.
+      </div>
+
+      <details class="demo-controls">
+        <summary>Device capability check</summary>
+        <div id="capList" style="margin-top:6px;"></div>
+        <p class="lead" style="font-size:11px; margin-top:6px;">Barometric pressure has no browser API on any current platform — the Android build reads it via SensorManager (TYPE_PRESSURE) instead.</p>
+      </details>
+
+      <details class="demo-controls">
+        <summary>Presenter demo controls</summary>
+        <select id="scenarioSelect">
+          <option value="auto">Auto — use real clock &amp; schedule</option>
+          <option value="take_now">Force: TAKE NOW</option>
+          <option value="not_due">Force: NOT DUE YET</option>
+          <option value="expired">Force: EXPIRED</option>
+          <option value="packaging_warning">Force: PACKAGING WARNING</option>
+        </select>
+      </details>
+    </section>
+
+    <!-- SENSING -->
+    <section id="stepSensing" hidden>
+      <div class="eyebrow">Step 1 · Sense</div>
+      <h1 style="font-size:20px;">Aim at the medicine</h1>
+      <div class="viewfinder" id="viewfinder">
+        <video id="video" autoplay playsinline muted></video>
+        <div id="bracketGroup" style="position:absolute; inset:0; transition:transform .1s linear;">
+          <div class="bracket tl"></div><div class="bracket tr"></div><div class="bracket bl"></div><div class="bracket br"></div>
+        </div>
+        <div class="vf-caption" id="vfCaption">Hold steady…</div>
+      </div>
+      <div>
+        <div class="meter"><i id="stabilityBar"></i></div>
+        <p class="lead" style="margin-top:6px; font-size:12.5px;" id="stabilityLabel">Waiting for a stable frame (IMU variance gate)…</p>
+      </div>
+      <button class="btn btn-ghost btn-block" id="btnManualCapture">Capture now</button>
+    </section>
+
+    <!-- IDENTIFY -->
+    <section id="stepIdentify" hidden>
+      <div class="eyebrow">Step 2 · Identify <span style="text-transform:none; font-weight:400; color:var(--ink-dim);">(simulated)</span></div>
+      <h1 style="font-size:20px;">Which medicine is this?</h1>
+      <div class="card" style="display:flex; gap:12px; align-items:center;">
+        <img id="capturedThumb" style="width:64px;height:64px;object-fit:cover;border-radius:10px;background:#0a0a0a;" alt="Captured frame">
+        <p class="lead" style="margin:0; font-size:12.5px;" id="identifyStatus">Analyzing captured frame…</p>
+      </div>
+      <div class="grid2" id="candidateList"></div>
+    </section>
+
+    <!-- VERIFY -->
+    <section id="stepVerify" hidden>
+      <div class="eyebrow">Step 3 · Verify</div>
+      <h1 style="font-size:20px;" id="verifyTitle">Evidence fusion</h1>
+      <div class="card">
+        <table class="evidence" id="evidenceTable"></table>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnToGuide">See decision</button>
+    </section>
+
+    <!-- GUIDE -->
+    <section id="stepGuide" hidden>
+      <div class="eyebrow">Step 4 · Guide &amp; log</div>
+      <div class="banner" id="actionBanner">
+        <h2 id="actionTitle">—</h2>
+        <p id="actionSub">—</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-block" id="btnLog">Log this event</button>
+      </div>
+      <button class="btn btn-ghost btn-block" id="btnScanAgain">Scan again</button>
+    </section>
+  </main>
+
+  <main class="screen" id="screenLog" hidden>
+    <h1 style="font-size:20px;">Adherence log</h1>
+    <p class="log-summary" id="logSummary"></p>
+    <div class="card" id="caregiverCard"></div>
+    <div id="logList"></div>
+    <div class="card" id="communityCard"></div>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-tab="scan">Scan</button>
+    <button class="tab" data-tab="log">Log</button>
+  </nav>
+</div>
+
+<script>
+(function(){
+  // ---- demo data -------------------------------------------------------
+  const MEDICINES = [
+    {id:'metformin',   name:'Metformin',    strength:'500 mg', schedule:['08:00','20:00'], expiry:'2027-06'},
+    {id:'paracetamol', name:'Paracetamol',  strength:'500 mg', schedule:['13:00'],          expiry:'2027-03'},
+    {id:'amoxicillin', name:'Amoxicillin',  strength:'250 mg', schedule:['09:00','21:00'],  expiry:'2026-11'},
+    {id:'ibuprofen',   name:'Ibuprofen',    strength:'400 mg', schedule:null,                expiry:'2027-01'},
+  ];
+
+  // ponytail: noise-floor thresholds, tune per device once the loaner iQOO is in hand.
+  const STABLE_VARIANCE = 0.35;   // m/s^2^2, below this counts as "steady"
+  const STABLE_HOLD_MS  = 700;    // how long it must stay steady before auto-capture
+
+  let step = 'idle';
+  let motionSamples = [];
+  let stableSince = null;
+  let captured = false;
+  let capturedDataUrl = null;
+  let barcodeResult = null;
+  let chosenMedicine = null;
+  let locConfidence = 'UNKNOWN', lastAccuracy = null;
+  let motionLabel = 'RESTING';
+  let tiltDeg = null, headingDeg = null, headingAbsolute = false;
+  let contextMode = 'home';
+  let db = null, sharedAlertCount = null;
+
+  // ---- shared community counter (db capability, team-build only) --------
+  if (window.claude && typeof window.claude.use === 'function'){
+    window.claude.use('db').then(d => {
+      db = d;
+      if (!d) return; // not granted / not available in this view — falls back to local count
+      db.collection('community_alerts').onSnapshot(
+        snap => { sharedAlertCount = snap.size; renderLog(); },
+        () => { sharedAlertCount = null; }
+      );
+    });
+  }
+
+  const $ = (id) => document.getElementById(id);
+  const scenario = () => $('scenarioSelect').value;
+
+  // ---- context mode (Pharmacy / Home / Clinic, PS §13) --------------------
+  const CONTEXT_COPY = {
+    pharmacy: {eyebrow:'Pharmacy mode', sub:'Verification mode — check the medicine before purchase.'},
+    home:     {eyebrow:'Home mode',     sub:'Adherence check — confirming your scheduled dose.'},
+    clinic:   {eyebrow:'Clinic mode',   sub:'Consultation context. Clinician voice capture is planned next, not built here.'},
+  };
+  function updateIdleCopy(){
+    const c = CONTEXT_COPY[contextMode];
+    $('idleEyebrow').textContent = c.eyebrow;
+    $('idleSub').textContent = c.sub;
+  }
+  document.querySelectorAll('.ctx').forEach(b => b.addEventListener('click', () => {
+    contextMode = b.dataset.ctx;
+    document.querySelectorAll('.ctx').forEach(x => x.classList.toggle('active', x===b));
+    updateIdleCopy();
+  }));
+  updateIdleCopy();
+
+  // ---- device capability check (PS §46 hardware validation) --------------
+  function renderCapabilities(){
+    const rows = [
+      ['Rear camera', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)],
+      ['IMU (motion)', typeof DeviceMotionEvent !== 'undefined'],
+      ['Magnetometer / orientation', typeof DeviceOrientationEvent !== 'undefined'],
+      ['GNSS (location)', 'geolocation' in navigator],
+      ['Barcode / QR reader', 'BarcodeDetector' in window],
+      ['Barometer', 'Barometer' in window],
+      ['Text-to-speech', 'speechSynthesis' in window],
+      ['Haptics (vibration)', 'vibrate' in navigator],
+    ];
+    $('capList').innerHTML = rows.map(([label, ok]) =>
+      '<div class="cap-row"><span>'+label+'</span><span class="pill '+(ok?'pill-yes':'pill-no')+'">'+(ok?'AVAILABLE':'NOT EXPOSED')+'</span></div>'
+    ).join('');
+  }
+  renderCapabilities();
+
+  // ---- HUD ---------------------------------------------------------------
+  function tickClock(){
+    $('chipClock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+  setInterval(tickClock, 1000); tickClock();
+
+  function updateMotionChip(){
+    const chip = $('chipMotion');
+    chip.textContent = 'MOTION ' + motionLabel;
+    chip.className = 'chip mono ' + (motionLabel==='HANDHELD·STABLE' ? 'on-stable' : motionLabel==='HANDHELD·MOVING' ? 'on-moving' : '');
+  }
+  function updateGnssChip(){
+    const chip = $('chipGnss');
+    const acc = lastAccuracy ? ' ±' + Math.round(lastAccuracy) + 'm' : '';
+    chip.textContent = 'GNSS ' + locConfidence + acc;
+    chip.className = 'chip mono ' + (locConfidence==='HIGH'?'on-hi':locConfidence==='MEDIUM'?'on-med':locConfidence==='LOW'?'on-lo':'on-off');
+  }
+  updateMotionChip(); updateGnssChip();
+
+  // ---- sensors -------------------------------------------------------
+  async function requestMotionPermission(){
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
+      try { return (await DeviceMotionEvent.requestPermission()) === 'granted'; } catch(e){ return false; }
+    }
+    return true;
+  }
+
+  function onDeviceMotion(e){
+    const a = e.acceleration && (e.acceleration.x!=null) ? e.acceleration : e.accelerationIncludingGravity;
+    if (!a || a.x==null) return;
+    const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
+    motionSamples.push(mag);
+    if (motionSamples.length > 20) motionSamples.shift();
+    if (motionSamples.length < 6) return;
+    const mean = motionSamples.reduce((s,v)=>s+v,0)/motionSamples.length;
+    const variance = motionSamples.reduce((s,v)=>s+(v-mean)**2,0)/motionSamples.length;
+
+    motionLabel = variance < STABLE_VARIANCE ? (mean < 0.6 ? 'RESTING' : 'HANDHELD·STABLE') : 'HANDHELD·MOVING';
+    updateMotionChip();
+
+    if (step === 'sensing'){
+      const pct = Math.max(4, Math.min(100, 100 - (variance / (STABLE_VARIANCE*4)) * 100));
+      $('stabilityBar').style.width = pct + '%';
+      if (variance < STABLE_VARIANCE){
+        $('vfCaption').textContent = 'Steady — capturing…';
+        $('stabilityLabel').textContent = 'Stable. Locking best frame.';
+        if (!stableSince) stableSince = Date.now();
+        if (!captured && Date.now() - stableSince > STABLE_HOLD_MS) { captured = true; captureFrame(); }
+      } else {
+        stableSince = null;
+        $('vfCaption').textContent = 'Hold steady…';
+        $('stabilityLabel').textContent = 'Waiting for a stable frame (IMU variance gate)…';
+      }
+    }
+  }
+
+  async function requestOrientationPermission(){
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+      try { return (await DeviceOrientationEvent.requestPermission()) === 'granted'; } catch(e){ return false; }
+    }
+    return true;
+  }
+
+  function onDeviceOrientation(e){
+    if (e.gamma != null) tiltDeg = e.gamma; // left-right tilt, drives the level-guide overlay
+    if (e.webkitCompassHeading != null) { headingDeg = e.webkitCompassHeading; headingAbsolute = true; }
+    else if (e.absolute && e.alpha != null) { headingDeg = 360 - e.alpha; headingAbsolute = true; }
+    else if (e.alpha != null) { headingDeg = e.alpha; headingAbsolute = false; }
+
+    const chip = $('chipHeading');
+    chip.textContent = headingDeg == null ? 'HEADING —' : 'HEADING ' + Math.round(headingDeg) + '°' + (headingAbsolute ? '' : '~');
+
+    const bg = $('bracketGroup');
+    if (bg && tiltDeg != null) bg.style.transform = 'rotate(' + Math.max(-12, Math.min(12, -tiltDeg)) + 'deg)';
+  }
+
+  function watchLocation(){
+    if (!('geolocation' in navigator)) { locConfidence='UNAVAILABLE'; updateGnssChip(); return; }
+    navigator.geolocation.watchPosition(
+      pos => { lastAccuracy = pos.coords.accuracy; locConfidence = lastAccuracy<20?'HIGH':lastAccuracy<100?'MEDIUM':'LOW'; updateGnssChip(); },
+      ()  => { locConfidence='DENIED'; updateGnssChip(); },
+      {enableHighAccuracy:true, maximumAge:5000}
+    );
+  }
+
+  let cameraOk = false;
+  async function startCamera(){
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
+      $('video').srcObject = stream;
+      cameraOk = true;
+    }catch(e){ cameraOk = false; }
+  }
+
+  async function captureFrame(){
+    const video = $('video');
+    const c = document.createElement('canvas');
+    c.width = video.videoWidth || 480; c.height = video.videoHeight || 360;
+    if (cameraOk) c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
+    else { c.getContext('2d').fillStyle = '#1c2528'; c.getContext('2d').fillRect(0,0,c.width,c.height); }
+    capturedDataUrl = c.toDataURL('image/jpeg', 0.7);
+
+    barcodeResult = null;
+    if ('BarcodeDetector' in window){
+      try{
+        const det = new BarcodeDetector();
+        const bitmap = await createImageBitmap(c);
+        const codes = await det.detect(bitmap);
+        if (codes.length) barcodeResult = codes[0].rawValue;
+      }catch(e){}
+    }
+    goToStep('identify');
+  }
+
+  // ---- step machine ----------------------------------------------------
+  const STEP_ORDER = ['sensing','identify','verify','guide'];
+  function goToStep(next){
+    step = next;
+    ['stepIdle','stepSensing','stepIdentify','stepVerify','stepGuide'].forEach(id => $(id).hidden = true);
+    $('step' + next[0].toUpperCase() + next.slice(1)).hidden = false;
+    document.querySelectorAll('#dots .dot').forEach(d=>{
+      const idx = STEP_ORDER.indexOf(d.dataset.step);
+      const curIdx = STEP_ORDER.indexOf(next);
+      d.className = 'dot' + (idx < curIdx ? ' done' : idx === curIdx ? ' active' : '');
+    });
+    if (next === 'identify') renderIdentify();
+    if (next === 'verify') renderVerify();
+  }
+
+  $('btnStart').addEventListener('click', async () => {
+    $('btnStart').textContent = 'Starting sensors…';
+    $('btnStart').disabled = true;
+    const [motionGranted, orientationGranted] = await Promise.all([requestMotionPermission(), requestOrientationPermission(), startCamera()]);
+    watchLocation();
+    if (motionGranted) window.addEventListener('devicemotion', onDeviceMotion);
+    else $('permNote').textContent = 'Motion sensor permission unavailable — you can still capture manually.';
+    if (orientationGranted){
+      window.addEventListener('deviceorientationabsolute', onDeviceOrientation);
+      window.addEventListener('deviceorientation', onDeviceOrientation);
+    }
+    if (!cameraOk) $('permNote').textContent += ' Camera unavailable — use "Capture now" to continue.';
+    captured = false; stableSince = null; motionSamples = [];
+    goToStep('sensing');
+  });
+
+  $('btnManualCapture').addEventListener('click', () => { if (!captured){ captured = true; captureFrame(); } });
+
+  function renderIdentify(){
+    $('capturedThumb').src = capturedDataUrl || '';
+    $('identifyStatus').textContent = barcodeResult
+      ? 'Frame captured. Barcode detected: ' + barcodeResult
+      : 'Frame captured. No barcode detected in this frame.';
+    const list = $('candidateList');
+    list.innerHTML = '';
+    MEDICINES.forEach(m => {
+      const b = document.createElement('button');
+      b.className = 'candidate';
+      b.innerHTML = '<strong>' + m.name + '</strong><span>' + m.strength + '</span>';
+      b.addEventListener('click', () => { chosenMedicine = m; goToStep('verify'); });
+      list.appendChild(b);
+    });
+  }
+
+  // ---- verification & decision logic (deterministic, mirrors PS §9/§29) --
+  function doseState(schedule){
+    if (!schedule) return {due:false, inSchedule:false, next:null};
+    const now = new Date();
+    const nowMin = now.getHours()*60 + now.getMinutes();
+    let due = false, next = schedule[0];
+    let bestDelta = Infinity;
+    schedule.forEach(t => {
+      const [h,m] = t.split(':').map(Number);
+      const mins = h*60+m;
+      const delta = Math.abs(nowMin - mins);
+      if (delta <= 45) due = true;
+      if (delta < bestDelta) { bestDelta = delta; next = t; }
+    });
+    return {due, inSchedule:true, next};
+  }
+
+  let lastAction = null;
+
+  function renderVerify(){
+    const m = chosenMedicine;
+    const sc = scenario();
+    const dose = doseState(m.schedule);
+
+    const identity = 'PASS';
+    const packaging = sc === 'packaging_warning' ? 'WARNING' : 'PASS';
+    const identifier = barcodeResult ? 'PASS' : 'UNKNOWN';
+    const expiryOk = sc === 'expired' ? false : new Date(m.expiry + '-01') > new Date();
+    const expiry = expiryOk ? 'PASS' : 'FAIL';
+    const prescription = dose.inSchedule ? 'PASS' : 'WARNING';
+    const location = locConfidence;
+    const locationClass = location==='HIGH' ? 'pass' : location==='MEDIUM' ? 'warning' : location==='LOW' ? 'fail' : 'unknown';
+
+    let action;
+    if (expiry === 'FAIL') action = 'EXPIRED';
+    else if (prescription === 'WARNING') action = 'NOT_IN_SCHEDULE';
+    else if (packaging === 'WARNING') action = 'PACKAGING_WARNING';
+    else if (sc === 'take_now') action = 'TAKE_NOW';
+    else if (sc === 'not_due') action = 'NOT_DUE';
+    else action = dose.due ? 'TAKE_NOW' : 'NOT_DUE';
+    lastAction = {code:action, next:dose.next};
+
+    const rows = [
+      ['OCR identity (simulated)', identity, identity.toLowerCase()],
+      ['Packaging signature', packaging, packaging.toLowerCase()],
+      ['Barcode / QR', identifier, identifier.toLowerCase()],
+      ['Expiry', expiry, expiry.toLowerCase()],
+      ['Prescription / schedule', prescription, prescription.toLowerCase()],
+      ['Location confidence', location, locationClass],
+    ];
+    $('evidenceTable').innerHTML = rows.map(([label,val,cls]) =>
+      '<tr><td>'+label+'</td><td class="state-'+cls+'">'+val+'</td></tr>'
+    ).join('');
+    $('verifyTitle').textContent = m.name + ' ' + m.strength;
+  }
+
+  $('btnToGuide').addEventListener('click', () => goToStep('guide'));
+
+  const ACTION_COPY = {
+    TAKE_NOW:        {cls:'ok',    title:'TAKE NOW',            sub:m=>contextMode==='pharmacy' ? 'This matches the medicine saved in your prescription.' : m.name+' '+m.strength+' is due now.', voice:m=>m.name+' '+m.strength+' is due now.',                        vibe:[70]},
+    NOT_DUE:         {cls:'warn',  title:'NOT DUE YET',         sub:(m,n)=>'Next dose at '+(n.next||'—')+'.',                        voice:()=>'This medicine is scheduled for later.',                    vibe:[70,80,70]},
+    NOT_IN_SCHEDULE: {cls:'warn',  title:"NOT IN TODAY'S LIST", sub:m=>m.name+' isn\'t part of today\'s scheduled medication.',       voice:()=>'This medicine is not in today\'s scheduled medication list.', vibe:[70,80,70]},
+    PACKAGING_WARNING:{cls:'warn', title:'PACKAGING MISMATCH',  sub:()=>'Do not rely on visual check alone — consult a pharmacist.',  voice:()=>'Packaging mismatch detected. Do not rely on visual verification alone.', vibe:[90,70,90,70,90]},
+    EXPIRED:         {cls:'danger',title:'DO NOT TAKE — EXPIRED', sub:m=>'Expiry check failed for '+m.name+'.',                       voice:()=>'This medicine appears expired. Do not take it. Confirm with a pharmacist.', vibe:[200,100,200,100,200]},
+  };
+
+  function renderGuide(){
+    const m = chosenMedicine, a = ACTION_COPY[lastAction.code];
+    const banner = $('actionBanner');
+    banner.className = 'banner ' + a.cls;
+    $('actionTitle').textContent = a.title;
+    $('actionSub').textContent = a.sub(m, lastAction);
+    $('btnLog').textContent = lastAction.code === 'TAKE_NOW' ? 'I took it — log dose' : 'Log this event';
+    try{ const u = new SpeechSynthesisUtterance(a.voice(m)); speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){}
+    try{ navigator.vibrate && navigator.vibrate(a.vibe); }catch(e){}
+  }
+
+  const origGoToStep = goToStep;
+  goToStep = function(next){ origGoToStep(next); if (next==='guide') renderGuide(); };
+
+  // ---- logging -----------------------------------------------------------
+  const LOG_KEY = 'senseguard_log_v1';
+  function loadLog(){
+    try{ return JSON.parse(localStorage.getItem(LOG_KEY)) || seedLog(); }catch(e){ return seedLog(); }
+  }
+  function seedLog(){
+    const yesterday = Date.now() - 24*3600*1000;
+    const seed = [
+      {time:'Yesterday 20:04', ts:yesterday, med:'Metformin 500 mg', status:'TAKEN', example:true},
+      {time:'Yesterday 08:02', ts:yesterday, med:'Metformin 500 mg', status:'TAKEN', example:true},
+    ];
+    localStorage.setItem(LOG_KEY, JSON.stringify(seed));
+    return seed;
+  }
+  function saveLog(entries){ localStorage.setItem(LOG_KEY, JSON.stringify(entries)); }
+
+  // Caregiver layer (PS §21): flag any scheduled slot, 45+ min past, with no matching TAKEN entry today.
+  function computeMissed(entries){
+    const now = new Date();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const missed = [];
+    MEDICINES.forEach(m => {
+      if (!m.schedule) return;
+      m.schedule.forEach(t => {
+        const [h, mm] = t.split(':').map(Number);
+        const slot = new Date(today); slot.setHours(h, mm, 0, 0);
+        if (slot.getTime() + 45*60000 > now.getTime()) return; // grace window hasn't passed yet
+        const taken = entries.some(e => e.ts && e.status==='TAKEN' && e.med.startsWith(m.name) && Math.abs(e.ts - slot.getTime()) <= 45*60000);
+        if (!taken) missed.push(m.name + ' ' + m.strength + ' — ' + t + ' dose missed');
+      });
+    });
+    return missed;
+  }
+
+  function renderCaregiver(entries){
+    const missed = computeMissed(entries);
+    $('caregiverCard').innerHTML = missed.length
+      ? '<strong style="color:var(--danger)">Caregiver alert</strong>' + missed.map(x => '<p class="lead" style="margin-top:6px;">'+x+'</p>').join('')
+      : '<strong style="color:var(--success)">On track</strong><p class="lead" style="margin-top:6px;">No missed doses so far today.</p>';
+  }
+
+  // Community safety signal (PS §13 Mode 2). Shared and live across every teammate's phone
+  // when the db capability is granted; falls back to an honestly-labeled local count otherwise.
+  function renderCommunity(entries){
+    const shared = sharedAlertCount != null;
+    const count = shared ? sharedAlertCount : entries.filter(e => e.status==='PACKAGING_WARNING').length;
+    $('communityCard').innerHTML = '<strong>Community safety signal</strong>'
+      + '<p class="lead" style="margin-top:6px;">'
+      + (shared ? 'Your team has logged <strong class="mono">'+count+'</strong> suspicious-packaging event'+(count===1?'':'s')+' across everyone\'s practice scans.'
+                : 'This device has logged <strong class="mono">'+count+'</strong> suspicious-packaging event'+(count===1?'':'s')+'.')
+      + '</p>'
+      + '<p class="lead" style="font-size:11px; margin-top:6px;">'
+      + (shared ? 'Live shared count for this rehearsal build. Production would aggregate anonymously across devices into coarse-location hotspot analytics.'
+                : 'Production aggregates this anonymously across devices into coarse-location hotspot analytics — this panel only reflects your own device.')
+      + '</p>';
+  }
+
+  function renderLog(){
+    const entries = loadLog();
+    const takenToday = entries.filter(e => e.status==='TAKEN').length;
+    $('logSummary').textContent = entries.length
+      ? takenToday + ' dose' + (takenToday===1?'':'s') + ' logged as taken so far.'
+      : 'No scans yet — run a scan to populate this log.';
+    $('logList').innerHTML = entries.slice().reverse().map(e => {
+      const color = e.status==='TAKEN' ? 'success' : e.status==='EXPIRED' ? 'danger' : 'warning';
+      return '<div class="log-item"><div><div class="med">'+e.med+(e.example?' <span class="tag-example">(example)</span>':'')+'</div><div class="time">'+e.time+'</div></div>'
+        + '<span class="status" style="color:var(--'+color+');background:var(--'+color+'-soft)">'+e.status.replace(/_/g,' ')+'</span></div>';
+    }).join('');
+    renderCaregiver(entries);
+    renderCommunity(entries);
+  }
+
+  $('btnLog').addEventListener('click', () => {
+    const entries = loadLog();
+    const status = lastAction.code === 'TAKE_NOW' ? 'TAKEN' : lastAction.code;
+    entries.push({
+      time: new Date().toLocaleString([], {weekday:'short', hour:'2-digit', minute:'2-digit'}),
+      ts: Date.now(),
+      med: chosenMedicine.name + ' ' + chosenMedicine.strength,
+      status,
+      example:false
+    });
+    saveLog(entries);
+    if (db && status === 'PACKAGING_WARNING'){
+      // Coarse, anonymous: no medicine name, no location — just that an anomaly happened.
+      db.collection('community_alerts').add({ts: Date.now()}).catch(() => {});
+    }
+    renderLog();
+    resetToIdle();
+    switchTab('log');
+  });
+
+  $('btnScanAgain').addEventListener('click', resetToIdle);
+  function resetToIdle(){
+    chosenMedicine = null; captured = false; stableSince = null;
+    step = 'idle';
+    ['stepSensing','stepIdentify','stepVerify','stepGuide'].forEach(id => $(id).hidden = true);
+    $('stepIdle').hidden = false;
+    document.querySelectorAll('#dots .dot').forEach(d => d.className='dot');
+    $('btnStart').textContent = 'Begin scan'; $('btnStart').disabled = false;
+  }
+
+  // ---- tabs ---------------------------------------------------------------
+  function switchTab(name){
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
+    $('screenScan').hidden = name !== 'scan';
+    $('screenLog').hidden = name !== 'log';
+    if (name==='log') renderLog();
+  }
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+  renderLog();
+})();
+</script>
