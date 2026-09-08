@@ -4,7 +4,7 @@
 
 > "The phone isn't running SenseGuard — the phone is SenseGuard."
 
-Team **Cognivista**.
+Team **Congnivista**.
 
 ---
 
